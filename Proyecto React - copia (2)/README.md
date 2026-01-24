@@ -90,5 +90,4 @@ Qué incluye:
 - Páginas: inicio, listado, detalle, carrito, login, registro
 - Diseño responsive básico y estructura defendible para DAW
 
-Notas para la evaluación:
-- El proyecto usa Firebase Authentication y Firestore para persistencia. Ideal para ampliar (añadir pedidos, administrador, etc.).
+
