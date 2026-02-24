@@ -9,6 +9,7 @@ import Cart from './pages/Cart'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import NotFound from './pages/NotFound'
+import { app } from "./firebase.js";
 
 export default function App() {
   return (

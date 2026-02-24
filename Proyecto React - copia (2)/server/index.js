@@ -15,7 +15,7 @@ app.use(cors())
 app.use(bodyParser.json())
 
 const adapter = new JSONFile(new URL('./db.json', import.meta.url))
-const db = new Low(adapter)
+const db = new Low(adapter, { users: [], products: [], carts: [] })
 await db.read()
 db.data ||= { users: [], products: [], carts: [] }
 
