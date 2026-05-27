@@ -4,39 +4,39 @@ import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
 
 export default function Navbar() {
-  const { user, logout } = useAuth()
-  const { cart } = useCart()
+  const { user, logout } = useAuth()
+  const { cart } = useCart()
 
-  const cartCount = cart.reduce((sum, item) => sum + item.qty, 0)
+  const cartCount = cart.reduce((sum, item) => sum + item.qty, 0)
 
-  return (
-    <nav className="nav">
-      <div className="nav-links">
-        <Link to="/" className="brand">⚡ TechStore</Link>
-        <Link to="/">Inicio</Link>
-        <Link to="/products">Productos</Link>
-      </div>
+  return (
+    <nav className="nav">
+      <div className="nav-links">
+        <Link to="/" className="brand">⚡ TechStore</Link>
+        <Link to="/">Inicio</Link>
+        <Link to="/products">Productos</Link>
+      </div>
 
-      <div className="nav-links">
-        {user ? (
-          <>
-            <span className="user">👤 {user.email.split('@')[0]}</span>
-            <Link
-              to="/cart"
-              className={cartCount > 0 ? 'cart-badge' : ''}
-              data-count={cartCount > 0 ? cartCount : null}
-            >
-              🛒 Carrito
-            </Link>
-            <button onClick={logout} className="btn-link">Salir</button>
-          </>
-        ) : (
-          <>
-            <Link to="/login">Iniciar sesión</Link>
-            <Link to="/register">Registrarse</Link>
-          </>
-        )}
-      </div>
-    </nav>
-  )
+      <div className="nav-links">
+        {user ? (
+          <>
+            <Link to="/profile" className="user">👤 {user.username}</Link>
+            <Link
+              to="/cart"
+              className={cartCount > 0 ? 'cart-badge' : ''}
+              data-count={cartCount > 0 ? cartCount : null}
+            >
+              🛒 Carrito
+            </Link>
+            <button onClick={logout} className="btn-link">Salir</button>
+          </>
+        ) : (
+          <>
+            <Link to="/login">Iniciar sesion</Link>
+            <Link to="/register">Registrarse</Link>
+          </>
+        )}
+      </div>
+    </nav>
+  )
 }

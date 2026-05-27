@@ -1,63 +1,64 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { auth } from "../firebase.js";
-
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  updateProfile,
-  GoogleAuthProvider,
-  signInWithPopup
-} from 'firebase/auth'
+import { authApi } from '../api'
 
 const AuthContext = createContext()
 
 export function useAuth() {
-  return useContext(AuthContext)
+  return useContext(AuthContext)
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  async function signup(email, password, profile) {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-    if (profile && (profile.displayName || profile.photoURL)) {
-      try {
-        await updateProfile(userCredential.user, {
-          displayName: profile.displayName,
-          photoURL: profile.photoURL
-        })
-      } catch (e) {
-        console.warn('No se pudo actualizar el perfil:', e)
-      }
-    }
-    return userCredential
-  }
+  // Restaurar sesion del localStorage al arrancar
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const stored = localStorage.getItem('user')
+    if (token && stored) {
+      try {
+        setUser(JSON.parse(stored))
+      } catch {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+      }
+    }
+    setLoading(false)
+  }, [])
 
-  async function login(email, password) {
-    return await signInWithEmailAndPassword(auth, email, password)
-  }
+  async function login(username, password) {
+    const data = await authApi.login(username, password)
+    localStorage.setItem('token', data.token)
+    const userData = { username: data.username, roles: data.roles }
+    localStorage.setItem('user', JSON.stringify(userData))
+    setUser(userData)
+    return userData
+  }
 
-  async function logout() {
-    await firebaseSignOut(auth)
-  }
+  async function signup(name, lastname, email, username, password) {
+    const data = await authApi.register(name, lastname, email, username, password)
+    localStorage.setItem('token', data.token)
+    const userData = { username: data.username, roles: data.roles }
+    localStorage.setItem('user', JSON.stringify(userData))
+    setUser(userData)
+    return userData
+  }
 
-  async function signInWithGoogle() {
-    const provider = new GoogleAuthProvider()
-    return await signInWithPopup(auth, provider)
-  }
+  function logout() {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setUser(null)
+  }
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, currentUser => {
-      setUser(currentUser ? { uid: currentUser.uid, email: currentUser.email, displayName: currentUser.displayName, photoURL: currentUser.photoURL } : null)
-      setLoading(false)
-    })
-    return unsubscribe
-  }, [])
+  function isAdmin() {
+    return user?.roles?.includes('ROLE_ADMIN') ?? false
+  }
 
-  const value = { user, signup, login, logout, signInWithGoogle }
+  const value = { user, login, signup, logout, isAdmin, loading }
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  )
 }

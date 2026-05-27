@@ -1,85 +1,164 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { useAuth } from './AuthContext'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+import { cartApi } from '../api'
 
 const CartContext = createContext()
 
 export function useCart() {
-  return useContext(CartContext)
+  return useContext(CartContext)
 }
 
+// --------------- guest cart helpers ---------------
+const GUEST_CART_KEY = 'guest_cart'
+
+function getGuestCart() {
+  try {
+    return JSON.parse(localStorage.getItem(GUEST_CART_KEY)) || []
+  } catch {
+    return []
+  }
+}
+
+function saveGuestCart(items) {
+  localStorage.setItem(GUEST_CART_KEY, JSON.stringify(items))
+}
+
+// --------------- mapper ---------------
+function mapCart(cartData) {
+  if (!cartData || !cartData.items) return []
+  return cartData.items.map((item) => ({
+    id: item.productId,
+    name: item.productName,
+    price: item.unitPrice,
+    qty: item.quantity
+  }))
+}
+
+// --------------- provider ---------------
 export function CartProvider({ children }) {
-  const { user } = useAuth()
-  const [cart, setCart] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { user } = useAuth()
+  const [cart, setCart] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [cartError, setCartError] = useState(null)
 
-  useEffect(() => {
-    async function load() {
-      if (!user) {
-        setCart([])
-        setLoading(false)
-        return
-      }
-      const token = localStorage.getItem('token')
-      const res = await fetch(`${API_URL}/api/cart`, { headers: { Authorization: `Bearer ${token}` } })
-      const items = await res.json()
-      setCart(items || [])
-      setLoading(false)
-    }
-    load()
-  }, [user])
+  const loadCart = useCallback(async () => {
+    if (!user) {
+      setCart(getGuestCart())
+      return
+    }
+    try {
+      setLoading(true)
+//       const data = await cartApi.getMyCart()
+      setCart(mapCart(data))
+    } catch (e) {
+      setCartError(e.message)
+      setCart([])
+    } finally {
+      setLoading(false)
+    }
+  }, [user])
 
-  async function persist(items) {
-    if (!user) return
-    const token = localStorage.getItem('token')
-    await fetch(`${API_URL}/api/cart`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ items })
-    })
-  }
+  // Al hacer login, sincronizar el carrito guest con el servidor
+  useEffect(() => {
+    if (!user) {
+      setCart(getGuestCart())
+      return
+    }
+    const guestCart = getGuestCart()
+    if (guestCart.length > 0) {
+      setLoading(true)
+      Promise.all(
+        guestCart.map((item) =>
+          cartApi.addItem(item.id, item.qty).catch(() => null)
+        )
+      )
+        .then(() => {
+          localStorage.removeItem(GUEST_CART_KEY)
+          return loadCart()
+        })
+        .catch(() => loadCart())
+    } else {
+      loadCart()
+    }
+  }, [user, loadCart])
 
-  function addItem(product, qty = 1) {
-    setCart((prev) => {
-      const idx = prev.findIndex((p) => p.id === product.id)
-      let next
-      if (idx >= 0) {
-        const copy = [...prev]
-        copy[idx].qty += qty
-        next = copy
-      } else {
-        next = [...prev, { ...product, qty }]
-      }
-      persist(next)
-      return next
-    })
-  }
+  async function addItem(product, qty = 1) {
+    if (!user) {
+      setCart((prev) => {
+        const existing = prev.find((i) => i.id === product.id)
+        const updated = existing
+          ? prev.map((i) =>
+              i.id === product.id ? { ...i, qty: i.qty + qty } : i
+            )
+          : [...prev, { id: product.id, name: product.name, price: product.price, qty }]
+        saveGuestCart(updated)
+        return updated
+      })
+      return
+    }
+    try {
+      const data = await cartApi.addItem(product.id, qty)
+      setCart(mapCart(data))
+    } catch (e) {
+      setCartError(e.message)
+    }
+  }
 
-  function updateQty(productId, qty) {
-    setCart((prev) => {
-      const next = prev.map((p) => (p.id === productId ? { ...p, qty } : p))
-      persist(next)
-      return next
-    })
-  }
+  async function updateQty(productId, qty) {
+    if (!user) {
+      if (qty <= 0) return removeItem(productId)
+      setCart((prev) => {
+        const updated = prev.map((i) =>
+          i.id === productId ? { ...i, qty } : i
+        )
+        saveGuestCart(updated)
+        return updated
+      })
+      return
+    }
+    if (qty <= 0) return removeItem(productId)
+    try {
+      const data = await cartApi.updateItem(productId, qty)
+      setCart(mapCart(data))
+    } catch (e) {
+      setCartError(e.message)
+    }
+  }
 
-  function removeItem(productId) {
-    setCart((prev) => {
-      const next = prev.filter((p) => p.id !== productId)
-      persist(next)
-      return next
-    })
-  }
+  async function removeItem(productId) {
+    if (!user) {
+      setCart((prev) => {
+        const updated = prev.filter((i) => i.id !== productId)
+        saveGuestCart(updated)
+        return updated
+      })
+      return
+    }
+    try {
+      const data = await cartApi.removeItem(productId)
+      setCart(mapCart(data))
+    } catch (e) {
+      setCartError(e.message)
+    }
+  }
 
-  function clearCart() {
-    setCart([])
-    persist([])
-  }
+  async function clearCart() {
+    if (!user) {
+      localStorage.removeItem(GUEST_CART_KEY)
+      setCart([])
+      return
+    }
+    try {
+      const data = await cartApi.clearCart()
+      setCart(mapCart(data))
+    } catch (e) {
+      setCartError(e.message)
+    }
+  }
 
-  const total = cart.reduce((s, it) => s + it.price * it.qty, 0)
+  const total = cart.reduce((s, it) => s + it.price * it.qty, 0)
 
-  const value = { cart, addItem, updateQty, removeItem, clearCart, total, loading }
+  const value = { cart, addItem, updateQty, removeItem, clearCart, total, loading, cartError }
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }
