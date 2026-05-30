@@ -62,7 +62,7 @@ app.get('/api/productos', async (req, res) => {
   }
 })
 
-app.get('/api/productos/:id_producto', async (req, res) => {
+app.get('/api/productos/:id_productos', async (req, res) => {
   try {
     const response = await springBootAPI.get(`/api/productos/${req.params.id}`)
     res.json(response.data)

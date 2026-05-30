@@ -48,7 +48,6 @@ public class SpringSecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/productos").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasRole("ADMIN")
-                        
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtValidationFilter(), UsernamePasswordAuthenticationFilter.class);

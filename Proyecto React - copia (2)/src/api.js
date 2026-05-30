@@ -7,39 +7,57 @@ function getToken() {
 function authHeaders() {
   const token = getToken()
   return token
-    ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
-    : { 'Content-Type': 'application/json' }
+    ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+    : { 'Content-Type': 'application/json' }
 }
 
 async function request(method, path, body) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers: authHeaders(),
-    body: body !== undefined ? JSON.stringify(body) : undefined
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: res.statusText }))
-    throw new Error(err.message || 'Error en la peticion')
-  }
-  if (res.status === 204) return null
-  return res.json()
+  const res = await fetch(`http://localhost:8080${path}`, {
+    method,
+    headers: authHeaders(),
+    body: body !== undefined ? JSON.stringify(body) : undefined
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }))
+    throw new Error(err.message || 'Error en la peticion')
+  }
+  if (res.status === 204) return null
+  return res.json()
+}
+
+// Mapear productos del backend al formato esperado
+function mapProduct(backendProduct) {
+  const productId = backendProduct.id || backendProduct.id_producto
+  return {
+    id: productId,
+    name: backendProduct.name && backendProduct.name.trim() ? backendProduct.name : `Producto ${productId}`,
+    price: backendProduct.precio || backendProduct.price || 0,
+    category: backendProduct.category || 'Otros',
+    stock: backendProduct.stock || 10,
+    rating: backendProduct.rating || 4.5,
+    image: backendProduct.imageUrl || backendProduct.image || '/placeholder.png',
+    description: backendProduct.description || `${backendProduct.marca || ''} ${backendProduct.modelo || ''}`.trim(),
+    specs: backendProduct.specs || []
+  }
 }
 
 // --- Auth ---
 export const authApi = {
-  login: (username, password) =>
-    request('POST', '/api/auth/login', { username, password }),
-  register: (name, lastname, email, username, password) =>
-    request('POST', '/api/auth/register', { name, lastname, email, username, password })
+  login: (username, password) =>
+    request('POST', '/api/auth/login', { username, password }),
+  register: (name, lastname, email, username, password) =>
+    request('POST', '/api/auth/register', { name, lastname, email, username, password })
 }
 
 // --- Productos ---
 export const productosApi = {
-  getAll: () => request('GET', '/api/products'),
-  getById: (id) => request('GET', `/api/products/${id}`),
-  create: (producto) => request('POST', '/api/products', producto),
-  update: (id, producto) => request('PUT', `/api/products/${id}`, producto),
-  delete: (id) => request('DELETE', `/api/products/${id}`)
+  getAll: () => request('GET', '/api/productos').then(productos => 
+    Array.isArray(productos) ? productos.map(mapProduct) : []
+  ),
+  getById: (id_producto) => request('GET', `/api/productos/${id_producto}`).then(mapProduct),
+  create: (producto) => request('POST', '/api/productos', producto),
+  update: (id_producto, producto) => request('PUT', `/api/productos/${id_producto}`, producto),
+  delete: (id_producto) => request('DELETE', `/api/productos/${id_producto}`)
 }
 
 // --- Usuarios ---
@@ -53,11 +71,11 @@ export const usersApi = {
 // --- Carrito ---
 export const cartApi = {
   getMyCart: () => request('GET', '/api/cart/my'),
-  addItem: (productId, quantity) =>
-    request('POST', `/api/cart/my/items?productId=${productId}&quantity=${quantity}`),
-  updateItem: (productId, quantity) =>
-    request('PUT', `/api/cart/my/items?productId=${productId}&quantity=${quantity}`),
-  removeItem: (productId) =>
-    request('DELETE', `/api/cart/my/items?productId=${productId}`),
+  addItem: (id_producto, quantity) =>
+    request('POST', `/api/cart/my/items?id_producto=${id_producto}&quantity=${quantity}`),
+  updateItem: (id_producto, quantity) =>
+    request('PUT', `/api/cart/my/items?id_producto=${id_producto}&quantity=${quantity}`),
+  removeItem: (id_producto) =>
+    request('DELETE', `/api/cart/my/items?id_producto=${id_producto}`),
   clearCart: () => request('DELETE', '/api/cart/my')
 }

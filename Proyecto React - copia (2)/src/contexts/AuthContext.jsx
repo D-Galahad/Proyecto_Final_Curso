@@ -4,7 +4,11 @@ import { authApi } from '../api'
 const AuthContext = createContext()
 
 export function useAuth() {
-  return useContext(AuthContext)
+  const context = useContext(AuthContext)
+  if (!context) {
+    return { user: null, loading: false, login: () => {}, signup: () => {}, logout: () => {}, isAdmin: () => false }
+  }
+  return context
 }
 
 export function AuthProvider({ children }) {

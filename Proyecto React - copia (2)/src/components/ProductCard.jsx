@@ -3,14 +3,12 @@ import { Link } from 'react-router-dom'
 import { useCart } from '../contexts/CartContext'
 
 export default function ProductCard({ product }) {
-  const { addItem } = useCart()
-  const [added, setAdded] = useState(false)
+  if (!product) return null
+  
+  const { addItem } = useCart()
+  const [added, setAdded] = useState(false)
 
-  const handleAddToCart = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    addItem(product, 1)
-    setAdded(true)
+  const handleAddToCart = (e) => {
     setTimeout(() => setAdded(false), 1500)
   }
 
@@ -42,12 +40,9 @@ export default function ProductCard({ product }) {
         <h3>{product.name}</h3>
 
         <div className="card-rating">
-          <span className="stars">{renderStars(product.rating)}</span>
-          <span className="rating-value">({product.rating})</span>
-        </div>
-
-        <p className="card-desc">{product.description}</p>
-
+          <span className="stars">{renderStars(product.rating || 0)}</span>
+          <span className="rating-value">({product.rating || 0})</span>
+        </div>
         {product.specs && (
           <div className="spec-list">
             {product.specs.slice(0, 2).map((spec, idx) => (
@@ -58,22 +53,22 @@ export default function ProductCard({ product }) {
 
         <div className="card-footer">
           <div>
-            <div className="price">€{product.price.toFixed(2)}</div>
+            <div className="price">€{(product.price || 0).toFixed(2)}</div>
             <div style={{
               fontSize: '0.78rem',
               fontWeight: 600,
               marginTop: 2,
-              color: product.stock === 0 ? 'var(--error)' : product.stock <= 5 ? 'var(--warning)' : 'var(--success)'
+              color: (product.stock || 0) === 0 ? 'var(--error)' : (product.stock || 0) <= 5 ? 'var(--warning)' : 'var(--success)'
             }}>
-              {product.stock === 0 ? '✗ Agotado' : product.stock <= 5 ? `⚠ Solo ${product.stock} left` : `✓ En stock`}
+              {(product.stock || 0) === 0 ? '✗ Agotado' : (product.stock || 0) <= 5 ? `⚠ Solo ${product.stock} left` : `✓ En stock`}
             </div>
           </div>
 
           <button
             className={`btn btn-cart${added ? ' btn-added' : ''}`}
             onClick={handleAddToCart}
-            disabled={product.stock === 0}
-            style={{ opacity: product.stock === 0 ? 0.5 : 1 }}
+            disabled={(product.stock || 0) === 0}
+            style={{ opacity: (product.stock || 0) === 0 ? 0.5 : 1 }}
           >
             {added ? '✓ Añadido' : '🛒 Añadir'}
           </button>
