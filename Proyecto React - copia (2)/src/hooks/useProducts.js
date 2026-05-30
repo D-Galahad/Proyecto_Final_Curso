@@ -27,7 +27,7 @@ export function useProducts() {
       .finally(() => setLoading(false))
   }, [])
 
-  return { products, loading, error }
+  return { products, loading }
 }
 
 export function useProduct(id) {
@@ -60,5 +60,5 @@ export function useProduct(id) {
       .finally(() => setLoading(false))
   }, [id])
 
-  return { product, loading, error }
+  return { product, loading}
 }
