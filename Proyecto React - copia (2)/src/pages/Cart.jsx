@@ -47,7 +47,7 @@ export default function Cart() {
           </table>
           <div className="cart-summary">
             <p>Total: <strong>€{total.toFixed(2)}</strong></p>
-            <button className="btn" onClick={() => { if (window.confirm('Confirmar compra (demo)')) { clearCart(); alert('Gracias por la compra demo') } }}>Pagar (demo)</button>
+            <button className="btn" onClick={() => nav('/checkout')}>Finalizar compra →</button>
           </div>
         </>
       )}
